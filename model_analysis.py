@@ -71,6 +71,8 @@ label_encoder = LabelEncoder()
 df['category_encoded'] = label_encoder.fit_transform(df['category'])
 df = df.drop(columns=['category'])
 
+print(df.info())
+
 """
 Data columns (total 12 columns):
 #   Column             Non-Null Count  Dtype
@@ -90,7 +92,7 @@ Data columns (total 12 columns):
 """
 
 # Feature selection and preprocessing
-X = df['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']
+X = df[['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
 y = df['strength']  # Target variable 'strength'
 
 # Train-test split
