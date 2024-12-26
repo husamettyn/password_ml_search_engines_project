@@ -36,7 +36,7 @@ y = df['strength']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Decision Tree modeli eğitimi
-decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=10, max_features= None, 
+decision_tree = DecisionTreeClassifier(criterion='entropy', max_depth=5, max_features= None, 
                                         min_samples_leaf=1, min_samples_split=5, random_state=42)
 decision_tree.fit(X_train, y_train)
 dt_predictions = decision_tree.predict(X_test)
@@ -45,7 +45,7 @@ dt_accuracy = accuracy_score(y_test, dt_predictions)
 print(f"Decision Tree Accuracy: {dt_accuracy:.2f}")
 
 # Naive Bayes modeli eğitimi
-naive_bayes = GaussianNB(var_smoothing=1e-7)
+naive_bayes = GaussianNB(var_smoothing=1e-5)
 naive_bayes.fit(X_train, y_train)
 nb_predictions = naive_bayes.predict(X_test)
 nb_accuracy = accuracy_score(y_test, nb_predictions)
@@ -57,7 +57,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-logistic_regression = LogisticRegression(C=1000, max_iter=100, penalty='l2', solver='newton-cg', random_state=42)
+logistic_regression = LogisticRegression(C=1000, max_iter=1000, penalty='l2', solver='lbfgs', random_state=42)
 logistic_regression.fit(X_train_scaled, y_train)
 lr_predictions = logistic_regression.predict(X_test_scaled)
 lr_accuracy = accuracy_score(y_test, lr_predictions)

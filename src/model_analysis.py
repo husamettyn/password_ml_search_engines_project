@@ -58,7 +58,7 @@ Data columns (total 12 columns):
 """
 
 # Feature selection and preprocessing
-X = df[['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
+X = df[['rank', 'offline_crack_sec', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
 y = df['strength']  # Target variable 'strength'
 
 # Train-test split
@@ -102,60 +102,60 @@ print(f"Accuracy: {accuracy_score(y_test, gnb_predictions)}")
 # Plot results for all Naive Bayes parameters
 plot_all_params(gnb_grid.cv_results_, gnb_params, 'Naive Bayes')
 
-# # 3.  Logistic Regression - Plot results for all parameters
+# 3.  Logistic Regression - Plot results for all parameters
 
-# print("\nLogistic Regression Classifier")
-# from sklearn.preprocessing import StandardScaler
+print("\nLogistic Regression Classifier")
+from sklearn.preprocessing import StandardScaler
 
-# scaler = StandardScaler()
-# X_train = scaler.fit_transform(X_train)
-# X_test = scaler.transform(X_test)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
 
-# # Uyumlu parametre kombinasyonları için ayrı grid'ler oluşturalım
-# param_grid = [
-#     {
-#         'penalty': ['l2', 'none'],
-#         'C': [0.01, 0.1, 1, 10, 100, 1000],
-#         'solver': ['lbfgs', 'newton-cg'],
-#         'max_iter': [100, 200, 1000, 5000]
-#     },
-#     {
-#         'penalty': ['l1', 'l2', 'elasticnet'],
-#         'C': [0.01, 0.1, 1, 10, 100, 1000],
-#         'solver': ['saga'],
-#         'l1_ratio': [0.2, 0.5, 0.8],  # elasticnet için gerekli
-#         'max_iter': [100, 200, 1000, 5000]
-#     }
-# ]
+# Uyumlu parametre kombinasyonları için ayrı grid'ler oluşturalım
+param_grid = [
+    {
+        'penalty': ['l2', 'none'],
+        'C': [0.01, 0.1, 1, 10, 100, 1000],
+        'solver': ['lbfgs', 'newton-cg'],
+        'max_iter': [100, 200, 1000, 5000]
+    },
+    {
+        'penalty': ['l1', 'l2', 'elasticnet'],
+        'C': [0.01, 0.1, 1, 10, 100, 1000],
+        'solver': ['saga'],
+        'l1_ratio': [0.2, 0.5, 0.8],  # elasticnet için gerekli
+        'max_iter': [100, 200, 1000, 5000]
+    }
+]
 
-# # GridSearch'ü güncellenen param_grid ile çalıştırma
-# grid_search = GridSearchCV(
-#     LogisticRegression(random_state=42, class_weight='balanced'),
-#     param_grid,
-#     cv=3,
-#     scoring='accuracy',
-#     n_jobs=-1
-# )
+# GridSearch'ü güncellenen param_grid ile çalıştırma
+grid_search = GridSearchCV(
+    LogisticRegression(random_state=42, class_weight='balanced'),
+    param_grid,
+    cv=3,
+    scoring='accuracy',
+    n_jobs=-1
+)
 
-# grid_search.fit(X_train, y_train)
+grid_search.fit(X_train, y_train)
 
-# # En iyi parametreler ve sonuçlar
-# best_params = grid_search.best_params_
-# print("En iyi parametreler:", best_params)
+# En iyi parametreler ve sonuçlar
+best_params = grid_search.best_params_
+print("En iyi parametreler:", best_params)
 
-# # Sonuçların görselleştirilmesi
-# results = grid_search.cv_results_
+# Sonuçların görselleştirilmesi
+results = grid_search.cv_results_
 
-# def plot_parameter_effect(param_name):
-#     plt.figure(figsize=(8, 6))
-#     param_values = results['param_' + param_name]
-#     mean_test_scores = results['mean_test_score']
-#     plt.plot(param_values, mean_test_scores, marker='o')
-#     plt.xlabel(param_name)
-#     plt.ylabel('Mean Test Accuracy')
-#     plt.title(f'Effect of {param_name} on Accuracy')
-#     plt.grid(True)
-#     plt.show()
+def plot_parameter_effect(param_name):
+    plt.figure(figsize=(8, 6))
+    param_values = results['param_' + param_name]
+    mean_test_scores = results['mean_test_score']
+    plt.plot(param_values, mean_test_scores, marker='o')
+    plt.xlabel(param_name)
+    plt.ylabel('Mean Test Accuracy')
+    plt.title(f'Effect of {param_name} on Accuracy')
+    plt.grid(True)
+    plt.show()
 
-# for param in ['penalty', 'C', 'solver', 'max_iter']:
-#     plot_parameter_effect(param)
+for param in ['penalty', 'C', 'solver', 'max_iter']:
+    plot_parameter_effect(param)
