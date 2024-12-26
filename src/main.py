@@ -2,6 +2,10 @@ import gradio as gr
 import pandas as pd
 import numpy as np
 from train import df, decision_tree, naive_bayes, logistic_regression, scaler
+from utils import password_features
+import random
+import string
+from sklearn.preprocessing import LabelEncoder
 
 # Model sözlüğü oluşturalım
 models = {
@@ -13,7 +17,7 @@ models = {
 def predict_samples(model_name, sample_count):
     # Rastgele örnekleri seçelim
     random_indices = np.random.choice(len(df), size=sample_count, replace=False)
-    X_samples = df.iloc[random_indices][['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 
+    X_samples = df.iloc[random_indices][['rank', 'offline_crack_sec', 'length', 'unique_chars', 
                                        'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
     y_true = df.iloc[random_indices]['strength']
     
@@ -39,6 +43,30 @@ def predict_samples(model_name, sample_count):
         ])
     
     return results
+
+# Kategorileri ve örnek şifreleri tanımlayalım
+categories = [
+    'password-related', 'simple-alphanumeric', 'animal', 'sport', 
+    'cool-macho', 'name', 'fluffy', 'food', 'nerdy-pop', 'rebellious-rude'
+]
+
+# Kategorileri encode edelim
+label_encoder = LabelEncoder()
+encoded_categories = label_encoder.fit_transform(categories)
+
+# Kategori dropdown'u için örnek şifreler
+category_examples = {
+    'password-related': 'password123',
+    'simple-alphanumeric': 'abc123',
+    'animal': 'lionking',
+    'sport': 'football',
+    'cool-macho': 'rockstar',
+    'name': 'johnsmith',
+    'fluffy': 'bunny',
+    'food': 'pizza',
+    'nerdy-pop': 'starwars',
+    'rebellious-rude': 'badboy'
+}
 
 # Gradio arayüzünü oluşturalım
 with gr.Blocks() as demo:
@@ -93,11 +121,47 @@ with gr.Blocks() as demo:
                 placeholder="Tahmin edilecek şifreyi buraya girin"
             )
             
-            def predict_password_strength(model_name, password):
-                # Şifreyi özelliklere dönüştürme işlemi burada yapılmalı
-                # Örnek olarak, sadece bir dummy değer döndürüyoruz
-                return "Tahmin Edilen Güç: 0.75"
+            category_dropdown = gr.Dropdown(
+                choices=[f"{cat} ({category_examples[cat]})" for cat in categories],
+                label="Kategori Seçiniz"
+            )
             
+            def predict_password_strength(model_name, password, category):
+                if not password or not category:
+                    return "Lütfen şifre ve kategori seçiniz."
+                
+                # Kategori adını ayıklayalım
+                category_name = category.split(' ')[0]
+                category_encoded = label_encoder.transform([category_name])[0]
+                
+                # Dummy değerler
+                rank = 5
+                offline_crack_sec = 5
+                font_size = 5
+                
+                # Şifre özelliklerini hesaplayalım
+                features = password_features(password)
+                features['category_encoded'] = int(category_encoded)
+                features['rank'] = rank
+                features['offline_crack_sec'] = features['unique_chars'] * 0.57
+                
+                model = models[model_name]
+                
+                # Series'i DataFrame'e çevirelim ve sütunları düzenleyelim
+                features_df = pd.DataFrame([features])
+                features_df = features_df[model.feature_names_in_]  # Modelin beklediği sırada sütunları düzenle
+                
+                print(features_df)
+                
+                # Logistic Regression için scaling
+                if model_name == "Logistic Regression":
+                    features_df = scaler.transform(features_df)
+                
+                # Tahmin alalım
+                y_pred = model.predict(features_df)[0]
+                
+                return f"{y_pred:.2f}"
+
             password_output = gr.Textbox(
                 label="Tahmin Edilen Güç",
                 interactive=False
@@ -105,7 +169,13 @@ with gr.Blocks() as demo:
             
             password_input.change(
                 fn=predict_password_strength,
-                inputs=[model_dropdown, password_input],
+                inputs=[model_dropdown, password_input, category_dropdown],
+                outputs=password_output
+            )
+            
+            category_dropdown.change(
+                fn=predict_password_strength,
+                inputs=[model_dropdown, password_input, category_dropdown],
                 outputs=password_output
             )
 

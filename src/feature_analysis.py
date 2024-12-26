@@ -26,6 +26,11 @@ df = df.drop(columns=['rank_alt', 'time_unit', 'value'])
 6   rank_alt           500 non-null    float64      DROPPED
 """
 
+# Şifre kategorilerini görüntüle
+print("\nŞifre Kategorileri:")
+print(df['category'].unique())
+
+
 # Apply feature extraction
 password_features_df = df['password'].apply(password_features)
 # Concatenate new features with the original dataframe
@@ -58,7 +63,7 @@ Data columns (total 12 columns):
 """
 
 # Correlation Analysis
-numeric_columns = df.select_dtypes(include=['float64', 'int64'])
+numeric_columns = df.drop('font_size', axis=1).select_dtypes(include=['float64', 'int64'])
 correlation_matrix = numeric_columns.corr()
 
 plt.figure(figsize=(10, 8))
@@ -192,4 +197,20 @@ plt.show()
 # plt.xlabel("Password Length")
 # plt.ylabel("Offline Cracking Time (seconds)")
 # plt.xticks(rotation=90)
+# plt.show()
+
+# # Font size ile diğer özellikler arasındaki korelasyonu inceleyelim
+# font_correlations = df[['font_size', 'strength', 'length', 'unique_chars', 
+#                        'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 
+#                        'special_ratio']].corr()['font_size'].sort_values(ascending=False)
+
+# print("\nFont Size Korelasyonları:")
+# print(font_correlations)
+
+# # Görselleştirme
+# plt.figure(figsize=(10, 6))
+# sns.scatterplot(data=df, x='strength', y='font_size')
+# plt.title("Şifre Gücü vs Font Boyutu")
+# plt.xlabel("Şifre Gücü")
+# plt.ylabel("Font Boyutu")
 # plt.show()

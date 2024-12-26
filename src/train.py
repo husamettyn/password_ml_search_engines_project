@@ -28,7 +28,8 @@ Data columns (total 12 columns):
 """
 
 # Bağımsız ve bağımlı değişkenleri ayıralım
-X = df[['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
+X_old = df[['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
+X = df[['rank', 'offline_crack_sec', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
 y = df['strength']  
 
 # Veri setini train-test olarak bölelim
