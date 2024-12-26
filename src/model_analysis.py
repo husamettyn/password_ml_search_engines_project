@@ -15,29 +15,9 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
-import kagglehub
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder
-import string
+from utils import import_dataset, password_features
 
-# extract features from password
-def password_features(password):
-    length = len(password)
-    unique_chars = len(set(password))
-    uppercase_count = sum(1 for char in password if char.isupper())
-    lowercase_count = sum(1 for char in password if char.islower())
-    digit_count = sum(1 for char in password if char.isdigit())
-    special_count = sum(1 for char in password if char in string.punctuation)
-    
-    return pd.Series({
-        'length': length,
-        'unique_chars': unique_chars,
-        'uppercase_ratio': uppercase_count / length,
-        'lowercase_ratio': lowercase_count / length,
-        'digit_ratio': digit_count / length,
-        'special_ratio': special_count / length
-    })
-    
 # Function to plot GridSearchCV results for all parameters
 def plot_all_params(cv_results, params, model_name):
     for param_name in params.keys():
@@ -55,21 +35,7 @@ def plot_all_params(cv_results, params, model_name):
         plt.grid(True)
         plt.show()
 
-# Load dataset
-path = kagglehub.dataset_download("utkarshx27/passwords")
-df = pd.read_csv(f"{path}/passwords.csv").dropna()
-
-# Drop rank_alt variable
-df = df.drop(columns=['rank_alt', 'time_unit', 'value'])
-
-# Apply feature extraction
-password_features_df = df['password'].apply(password_features)
-df = pd.concat([df, password_features_df], axis=1)
-
-# Category Encoding: Convert category to integer
-label_encoder = LabelEncoder()
-df['category_encoded'] = label_encoder.fit_transform(df['category'])
-df = df.drop(columns=['category'])
+df = import_dataset()
 
 print(df.info())
 
@@ -119,42 +85,50 @@ print(f"Accuracy: {accuracy_score(y_test, dt_predictions)}")
 # Plot results for all Decision Tree parameters
 plot_all_params(dt_grid.cv_results_, dt_params, 'Decision Tree')
 
-# # 2. Naive Bayes - Plot results for all parameters
-# print("\nNaive Bayes Classifier")
-# gnb_params = {
-#     'var_smoothing': [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4]
-# }
-# gnb = GaussianNB()
-# gnb_grid = GridSearchCV(gnb, gnb_params, cv=5, scoring='accuracy')
-# gnb_grid.fit(X_train, y_train)
+# 2. Naive Bayes - Plot results for all parameters
+print("\nNaive Bayes Classifier")
+gnb_params = {
+    'var_smoothing': [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4]
+}
+gnb = GaussianNB()
+gnb_grid = GridSearchCV(gnb, gnb_params, cv=5, scoring='accuracy')
+gnb_grid.fit(X_train, y_train)
 
-# gnb_best = gnb_grid.best_estimator_
-# gnb_predictions = gnb_best.predict(X_test)
-# print(f"Best Parameters: {gnb_grid.best_params_}")
-# print(f"Accuracy: {accuracy_score(y_test, gnb_predictions)}")
+gnb_best = gnb_grid.best_estimator_
+gnb_predictions = gnb_best.predict(X_test)
+print(f"Best Parameters: {gnb_grid.best_params_}")
+print(f"Accuracy: {accuracy_score(y_test, gnb_predictions)}")
 
-# # Plot results for all Naive Bayes parameters
-# plot_all_params(gnb_grid.cv_results_, gnb_params, 'Naive Bayes')
+# Plot results for all Naive Bayes parameters
+plot_all_params(gnb_grid.cv_results_, gnb_params, 'Naive Bayes')
 
-# 3.  Logistic Regression - Plot results for all parameters
+# # 3.  Logistic Regression - Plot results for all parameters
 
 # print("\nLogistic Regression Classifier")
 # from sklearn.preprocessing import StandardScaler
 
-# # Özellikleri ölçeklendirme
 # scaler = StandardScaler()
 # X_train = scaler.fit_transform(X_train)
 # X_test = scaler.transform(X_test)
 
-# # Parametreler için grid arama
-# param_grid = {
-#     'penalty': ['l1', 'l2', 'elasticnet', 'none'],
-#     'C': [0.01, 0.1, 1, 10, 100, 1000],
-#     'solver': ['saga', 'lbfgs', 'newton-cg'],
-#     'max_iter': [100, 200, 1000, 5000]
-# }
+# # Uyumlu parametre kombinasyonları için ayrı grid'ler oluşturalım
+# param_grid = [
+#     {
+#         'penalty': ['l2', 'none'],
+#         'C': [0.01, 0.1, 1, 10, 100, 1000],
+#         'solver': ['lbfgs', 'newton-cg'],
+#         'max_iter': [100, 200, 1000, 5000]
+#     },
+#     {
+#         'penalty': ['l1', 'l2', 'elasticnet'],
+#         'C': [0.01, 0.1, 1, 10, 100, 1000],
+#         'solver': ['saga'],
+#         'l1_ratio': [0.2, 0.5, 0.8],  # elasticnet için gerekli
+#         'max_iter': [100, 200, 1000, 5000]
+#     }
+# ]
 
-# # Modeli dengelemek için class_weight ekleme
+# # GridSearch'ü güncellenen param_grid ile çalıştırma
 # grid_search = GridSearchCV(
 #     LogisticRegression(random_state=42, class_weight='balanced'),
 #     param_grid,
@@ -162,6 +136,7 @@ plot_all_params(dt_grid.cv_results_, dt_params, 'Decision Tree')
 #     scoring='accuracy',
 #     n_jobs=-1
 # )
+
 # grid_search.fit(X_train, y_train)
 
 # # En iyi parametreler ve sonuçlar

@@ -7,35 +7,39 @@ from sklearn.metrics import accuracy_score
 import kagglehub
 # Veriyi yükleme
 import pandas as pd
+from utils import password_features, import_dataset
 
-path = kagglehub.dataset_download("utkarshx27/passwords")
-df = pd.read_csv(f"{path}/passwords.csv").dropna()
+df = import_dataset()
 
-# df.info()
+print(df.info())
 """
+Data columns (total 12 columns):
 #   Column             Non-Null Count  Dtype
----  ------             --------------  -----
+-   ------             --------------  -----
+0   rank               500 non-null    float64
 1   password           500 non-null    object
-7   strength           500 non-null    float64
-0   rank               500 non-null    float64 
-5   offline_crack_sec  500 non-null    float64
-8   font_size          500 non-null    float64
-2   category           500 non-null    object
-3   value              500 non-null    float64      DROP
-4   time_unit          500 non-null    object       DROP
-6   rank_alt           500 non-null    float64      DROP
+2   offline_crack_sec  500 non-null    float64
+3   strength           500 non-null    float64
+4   font_size          500 non-null    float64
+5   length             500 non-null    float64
+6   unique_chars       500 non-null    float64
+7   uppercase_ratio    500 non-null    float64
+8   lowercase_ratio    500 non-null    float64
+9   digit_ratio        500 non-null    float64
+10  special_ratio      500 non-null    float64
+11  category_encoded   500 non-null    int32
 """
 
 # Bağımsız ve bağımlı değişkenleri ayıralım
-X = df[['rank', 'value', 'offline_crack_sec', 'font_size']]
-y = df['strength']
+X = df[['rank', 'offline_crack_sec', 'font_size', 'length', 'unique_chars', 'uppercase_ratio', 'lowercase_ratio', 'digit_ratio', 'special_ratio', 'category_encoded']]
+y = df['strength']  
 
 # Veri setini train-test olarak bölelim
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # Decision Tree modeli eğitimi
-decision_tree = DecisionTreeClassifier(criterion='entropy', max_depth=5, max_features= None, 
-                                        min_samples_leaf=2, min_samples_split=2, random_state=42)
+decision_tree = DecisionTreeClassifier(criterion='gini', max_depth=10, max_features= None, 
+                                        min_samples_leaf=1, min_samples_split=5, random_state=42)
 decision_tree.fit(X_train, y_train)
 dt_predictions = decision_tree.predict(X_test)
 dt_accuracy = accuracy_score(y_test, dt_predictions)
@@ -43,7 +47,7 @@ dt_accuracy = accuracy_score(y_test, dt_predictions)
 print(f"Decision Tree Accuracy: {dt_accuracy:.2f}")
 
 # Naive Bayes modeli eğitimi
-naive_bayes = GaussianNB(var_smoothing=1e-5)
+naive_bayes = GaussianNB(var_smoothing=1e-7)
 naive_bayes.fit(X_train, y_train)
 nb_predictions = naive_bayes.predict(X_test)
 nb_accuracy = accuracy_score(y_test, nb_predictions)
@@ -55,7 +59,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-logistic_regression = LogisticRegression(C=1000, max_iter=1000, penalty='l2', solver='lbfgs', random_state=42)
+logistic_regression = LogisticRegression(C=1000, max_iter=100, penalty='l2', solver='newton-cg', random_state=42)
 logistic_regression.fit(X_train_scaled, y_train)
 lr_predictions = logistic_regression.predict(X_test_scaled)
 lr_accuracy = accuracy_score(y_test, lr_predictions)

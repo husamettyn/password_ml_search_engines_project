@@ -3,25 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
-import string
-
-def password_features(password):
-    length = len(password)
-    unique_chars = len(set(password))
-    uppercase_count = sum(1 for char in password if char.isupper())
-    lowercase_count = sum(1 for char in password if char.islower())
-    digit_count = sum(1 for char in password if char.isdigit())
-    special_count = sum(1 for char in password if char in string.punctuation)
-    
-    return pd.Series({
-        'length': length,
-        'unique_chars': unique_chars,
-        'uppercase_ratio': uppercase_count / length,
-        'lowercase_ratio': lowercase_count / length,
-        'digit_ratio': digit_count / length,
-        'special_ratio': special_count / length
-    })
-
+from utils import password_features
 
 # Download latest version
 path = kagglehub.dataset_download("utkarshx27/passwords")
