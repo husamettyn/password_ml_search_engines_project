@@ -22,13 +22,21 @@ def password_features(password):
     
 def import_dataset():
     # Load dataset
-    path = kagglehub.dataset_download("utkarshx27/passwords")
+    try:
+        path = kagglehub.dataset_download("utkarshx27/passwords")
+        print(path)
+    except:
+        print("Unable to connect Kagglehub, trying local dataset...")
+        try: 
+            path = "C:\Users\Husam\.cache\kagglehub\datasets\utkarshx27\passwords\versions\1"
+        except:
+            print("Wrong path or no local dataset... Quitting")
+            exit()
     df = pd.read_csv(f"{path}/passwords.csv").dropna()
 
     # Drop rank_alt variable
     df = df.drop(columns=['rank_alt', 'time_unit', 'value'])
-
-
+    df = df.dropna()
     # Apply feature extraction
     password_features_df = df['password'].apply(password_features)
     df = pd.concat([df, password_features_df], axis=1)

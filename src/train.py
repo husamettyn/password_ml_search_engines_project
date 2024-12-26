@@ -1,17 +1,14 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-import kagglehub
-# Veriyi yükleme
-import pandas as pd
+from sklearn.metrics import accuracy_score, mean_squared_error
 from utils import password_features, import_dataset
+import numpy as np
 
 df = import_dataset()
 
-print(df.info())
 """
 Data columns (total 12 columns):
 #   Column             Non-Null Count  Dtype
