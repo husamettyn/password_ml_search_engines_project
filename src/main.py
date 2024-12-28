@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 from train import df, decision_tree, naive_bayes, logistic_regression, scaler
 from utils import password_features
-import random
-import string
 from sklearn.preprocessing import LabelEncoder
 
 # Model sözlüğü oluşturalım
@@ -68,31 +66,101 @@ category_examples = {
     'rebellious-rude': 'badboy'
 }
 
+def get_top_passwords_by_category(category_name):
+    # Kategoriyi encode edelim
+    category_encoded = label_encoder.transform([category_name])[0]
+    
+    # Kategoriyi filtreleyelim
+    category_df = df[df['category_encoded'] == category_encoded]
+    
+    # Şifreleri güce göre sıralayalım ve en güçlü 5 tanesini seçelim
+    top_passwords = category_df.nlargest(5, 'strength')[['password', 'strength']]
+    
+    # Şifreleri liste içinde liste formatında döndürelim
+    return [[row['password'], f"{row['strength']:.2f}"] for _, row in top_passwords.iterrows()]
+
+def get_weakest_passwords_by_category(category_name):
+    # Kategoriyi encode edelim
+    category_encoded = label_encoder.transform([category_name])[0]
+    
+    # Kategoriyi filtreleyelim
+    category_df = df[df['category_encoded'] == category_encoded]
+    
+    # Şifreleri güce göre sıralayalım ve en güçsüz 5 tanesini seçelim
+    weakest_passwords = category_df.nsmallest(5, 'strength')[['password', 'strength']]
+    
+    # Şifreleri liste içinde liste formatında döndürelim
+    return [[row['password'], f"{row['strength']:.2f}"] for _, row in weakest_passwords.iterrows()]
+
+# Başlangıçta tabloları doldurmak için fonksiyonları çağır
+initial_model = "Decision Tree"
+initial_sample_count = 20
+initial_category = categories[0]
+
+# Başlangıç değerlerini hesapla
+initial_results = predict_samples(initial_model, initial_sample_count)
+initial_top_passwords = get_top_passwords_by_category(initial_category)
+initial_weakest_passwords = get_weakest_passwords_by_category(initial_category)
+
 # Gradio arayüzünü oluşturalım
-with gr.Blocks() as demo:
-    gr.Markdown("# Şifre Güçlülük Tahmini")
+with gr.Blocks(theme='allenai/gradio-theme') as demo:
+    gr.Markdown("Şifre Güçlülük Tahmini")
     
     with gr.Row():
         with gr.Column():
             model_dropdown = gr.Dropdown(
                 choices=list(models.keys()),
-                value="Decision Tree",
+                value=initial_model,
                 label="Model Seçiniz"
             )
             
-            sample_count_dropdown = gr.Dropdown(
-                choices=[10, 20, 30, 40, 50],  # Örnek sayısı seçenekleri
-                value=20,
-                label="Örnek Sayısı Seçiniz"
+            password_input = gr.Textbox(
+                label="Şifre Giriniz",
+                placeholder="Tahmin edilecek şifreyi buraya girin"
             )
             
+            category_dropdown = gr.Dropdown(
+                choices=[f"{cat} ({category_examples[cat]})" for cat in categories],
+                value=f"{initial_category} ({category_examples[initial_category]})",
+                label="Kategori Seçiniz"
+            )
+
+            password_output = gr.Textbox(
+                label="Tahmin Edilen Güç",
+                interactive=False
+            )
+
+        with gr.Column():
+            sample_count_dropdown = gr.Dropdown(
+                choices=[10, 20, 30, 40, 50],  # Örnek sayısı seçenekleri
+                value=initial_sample_count,
+                label="Örnek Sayısı Seçiniz"
+            )
+
             output_table = gr.Dataframe(
+                value=initial_results,  # Başlangıçta initial_results ile dolu
                 headers=["Password", "Strength Real", "Strength Guess"],
                 row_count=20,
                 col_count=3,
                 interactive=False
             )
             
+            top_passwords_output = gr.Dataframe(
+                value=initial_top_passwords,  # Başlangıçta initial_top_passwords ile dolu
+                headers=["Top Passwords", "Strength"],
+                row_count=5,
+                col_count=2,
+                interactive=False
+            )
+
+            weakest_passwords_output = gr.Dataframe(
+                value=initial_weakest_passwords,  # Başlangıçta initial_weakest_passwords ile dolu
+                headers=["Weakest Passwords", "Strength"],
+                row_count=5,
+                col_count=2,
+                interactive=False
+            )
+
             def update_table(model_name, sample_count):
                 results = predict_samples(model_name, sample_count)
                 return gr.Dataframe(
@@ -114,17 +182,6 @@ with gr.Blocks() as demo:
                 inputs=[model_dropdown, sample_count_dropdown],
                 outputs=output_table
             )
-        
-        with gr.Column():
-            password_input = gr.Textbox(
-                label="Şifre Giriniz",
-                placeholder="Tahmin edilecek şifreyi buraya girin"
-            )
-            
-            category_dropdown = gr.Dropdown(
-                choices=[f"{cat} ({category_examples[cat]})" for cat in categories],
-                label="Kategori Seçiniz"
-            )
             
             def predict_password_strength(model_name, password, category):
                 if not password or not category:
@@ -136,8 +193,6 @@ with gr.Blocks() as demo:
                 
                 # Dummy değerler
                 rank = 5
-                offline_crack_sec = 5
-                font_size = 5
                 
                 # Şifre özelliklerini hesaplayalım
                 features = password_features(password)
@@ -151,8 +206,6 @@ with gr.Blocks() as demo:
                 features_df = pd.DataFrame([features])
                 features_df = features_df[model.feature_names_in_]  # Modelin beklediği sırada sütunları düzenle
                 
-                print(features_df)
-                
                 # Logistic Regression için scaling
                 if model_name == "Logistic Regression":
                     features_df = scaler.transform(features_df)
@@ -162,22 +215,24 @@ with gr.Blocks() as demo:
                 
                 return f"{y_pred:.2f}"
 
-            password_output = gr.Textbox(
-                label="Tahmin Edilen Güç",
-                interactive=False
-            )
-            
-            password_input.change(
-                fn=predict_password_strength,
-                inputs=[model_dropdown, password_input, category_dropdown],
-                outputs=password_output
-            )
-            
             category_dropdown.change(
-                fn=predict_password_strength,
+                fn=lambda model_name, password, category: (
+                    predict_password_strength(model_name, password, category),
+                    get_top_passwords_by_category(category.split(' ')[0]),
+                    get_weakest_passwords_by_category(category.split(' ')[0])
+                ),
                 inputs=[model_dropdown, password_input, category_dropdown],
-                outputs=password_output
+                outputs=[password_output, top_passwords_output, weakest_passwords_output]
             )
+
+    # Başlangıç değerlerini ayarlayalım
+    initial_results = predict_samples(initial_model, initial_sample_count)
+    initial_top_passwords = get_top_passwords_by_category(initial_category)
+    initial_weakest_passwords = get_weakest_passwords_by_category(initial_category)
+    password_output.value = predict_password_strength(initial_model, "", f"{initial_category} ({category_examples[initial_category]})")
+    output_table.value = initial_results
+    top_passwords_output.value = initial_top_passwords
+    weakest_passwords_output.value = initial_weakest_passwords
 
 if __name__ == "__main__":
     demo.launch() 
