@@ -1,7 +1,7 @@
 import gradio as gr
 import pandas as pd
 import numpy as np
-from train import df, decision_tree, naive_bayes, logistic_regression, scaler
+from train import df, decision_tree, naive_bayes, logistic_regression, scaler, dt_accuracy, nb_accuracy, lr_accuracy
 from utils import password_features
 from sklearn.preprocessing import LabelEncoder
 
@@ -11,6 +11,17 @@ models = {
     "Naive Bayes": naive_bayes,
     "Logistic Regression": logistic_regression
 }
+
+# Add a dictionary to store model accuracies
+model_accuracies = {
+    "Decision Tree": dt_accuracy,
+    "Naive Bayes": nb_accuracy,
+    "Logistic Regression": lr_accuracy
+}
+
+# Add a function to get the accuracy of the selected model
+def get_model_accuracy(model_name):
+    return f"Accuracy: {model_accuracies[model_name]:.2f}"
 
 def predict_samples(model_name, sample_count):
     # Rastgele örnekleri seçelim
@@ -104,97 +115,117 @@ initial_weakest_passwords = get_weakest_passwords_by_category(initial_category)
 
 # Gradio arayüzünü oluşturalım
 with gr.Blocks(theme='allenai/gradio-theme') as demo:
-    gr.Markdown("Şifre Güçlülük Tahmini")
+    gr.Markdown("Password Strength Prediction")
+    
+    
     
     with gr.Row():
         with gr.Column():
+            
+            # Add an 'Overview' title and a descriptive paragraph
+            gr.Markdown("## Overview")
+            gr.Markdown("""
+            - This interface allows users to predict the strength of passwords using different machine learning models.
+            - Users can select a model from the dropdown menu and input a password to receive a predicted strength score.
+            - The interface provides insights into the top and weakest passwords within specific categories.
+            - Helps users understand the characteristics of strong and weak passwords.
+            - Displays the model's accuracy to give users an idea of the prediction reliability.
+            - Useful for both educational purposes and practical applications in enhancing password security.
+            """)
+            # Add a title 'Predict' to the left column
+            gr.Markdown("## Predict & Inspect")
+            
             model_dropdown = gr.Dropdown(
                 choices=list(models.keys()),
                 value=initial_model,
-                label="Model Seçiniz"
+                label="Select Model"
             )
             
+            # Move model accuracy output to the left column
+            model_accuracy_output = gr.Textbox(
+                value=get_model_accuracy(initial_model),
+                label="Model Accuracy",
+                interactive=False
+            )
+            
+            # Add a horizontal line after the model accuracy output
+            gr.Markdown("---")
+            
             password_input = gr.Textbox(
-                label="Şifre Giriniz",
-                placeholder="Tahmin edilecek şifreyi buraya girin"
+                label="Enter Password",
+                placeholder="Enter the password to be predicted here"
             )
             
             category_dropdown = gr.Dropdown(
                 choices=[f"{cat} ({category_examples[cat]})" for cat in categories],
                 value=f"{initial_category} ({category_examples[initial_category]})",
-                label="Kategori Seçiniz"
+                label="Select Category"
             )
 
             password_output = gr.Textbox(
-                label="Tahmin Edilen Güç",
+                label="Predicted Strength",
                 interactive=False
             )
 
         with gr.Column():
-            sample_count_dropdown = gr.Dropdown(
-                choices=[10, 20, 30, 40, 50],  # Örnek sayısı seçenekleri
-                value=initial_sample_count,
-                label="Örnek Sayısı Seçiniz"
-            )
-
+            # Add a title 'Dataset Image' to the right column
+            gr.Markdown("## Model Predictions on Random Samples")
+            
+            # Remove sample count dropdown and set default sample count to 20
             output_table = gr.Dataframe(
-                value=initial_results,  # Başlangıçta initial_results ile dolu
+                value=initial_results,  # Initially filled with initial_results
                 headers=["Password", "Strength Real", "Strength Guess"],
                 row_count=20,
                 col_count=3,
                 interactive=False
             )
             
+            gr.Markdown("## Random passwords by category")
+            
             top_passwords_output = gr.Dataframe(
-                value=initial_top_passwords,  # Başlangıçta initial_top_passwords ile dolu
+                value=initial_top_passwords,  # Initially filled with initial_top_passwords
                 headers=["Top Passwords", "Strength"],
                 row_count=5,
                 col_count=2,
                 interactive=False
             )
-
+            
             weakest_passwords_output = gr.Dataframe(
-                value=initial_weakest_passwords,  # Başlangıçta initial_weakest_passwords ile dolu
+                value=initial_weakest_passwords,  # Initially filled with initial_weakest_passwords
                 headers=["Weakest Passwords", "Strength"],
                 row_count=5,
                 col_count=2,
                 interactive=False
             )
 
-            def update_table(model_name, sample_count):
-                results = predict_samples(model_name, sample_count)
+            def update_table(model_name):
+                results = predict_samples(model_name, 20)
                 return gr.Dataframe(
                     value=results,
                     headers=["Password", "Strength Real", "Strength Guess"],
-                    row_count=sample_count,
+                    row_count=20,
                     col_count=3,
                     interactive=False
                 )
             
             model_dropdown.change(
                 fn=update_table,
-                inputs=[model_dropdown, sample_count_dropdown],
-                outputs=output_table
-            )
-            
-            sample_count_dropdown.change(
-                fn=update_table,
-                inputs=[model_dropdown, sample_count_dropdown],
+                inputs=[model_dropdown],
                 outputs=output_table
             )
             
             def predict_password_strength(model_name, password, category):
                 if not password or not category:
-                    return "Lütfen şifre ve kategori seçiniz."
+                    return "Please select a password and category."
                 
-                # Kategori adını ayıklayalım
+                # Extract category name
                 category_name = category.split(' ')[0]
                 category_encoded = label_encoder.transform([category_name])[0]
                 
-                # Dummy değerler
+                # Dummy values
                 rank = 5
                 
-                # Şifre özelliklerini hesaplayalım
+                # Calculate password features
                 features = password_features(password)
                 features['category_encoded'] = int(category_encoded)
                 features['rank'] = rank
@@ -202,15 +233,15 @@ with gr.Blocks(theme='allenai/gradio-theme') as demo:
                 
                 model = models[model_name]
                 
-                # Series'i DataFrame'e çevirelim ve sütunları düzenleyelim
+                # Convert Series to DataFrame and arrange columns
                 features_df = pd.DataFrame([features])
-                features_df = features_df[model.feature_names_in_]  # Modelin beklediği sırada sütunları düzenle
+                features_df = features_df[model.feature_names_in_]  # Arrange columns in the order expected by the model
                 
-                # Logistic Regression için scaling
+                # Scaling for Logistic Regression
                 if model_name == "Logistic Regression":
                     features_df = scaler.transform(features_df)
                 
-                # Tahmin alalım
+                # Get prediction
                 y_pred = model.predict(features_df)[0]
                 
                 return f"{y_pred:.2f}"
@@ -225,7 +256,14 @@ with gr.Blocks(theme='allenai/gradio-theme') as demo:
                 outputs=[password_output, top_passwords_output, weakest_passwords_output]
             )
 
-    # Başlangıç değerlerini ayarlayalım
+            # Update the model accuracy when the model is changed
+            model_dropdown.change(
+                fn=lambda model_name: get_model_accuracy(model_name),
+                inputs=[model_dropdown],
+                outputs=model_accuracy_output
+            )
+
+    # Set initial values
     initial_results = predict_samples(initial_model, initial_sample_count)
     initial_top_passwords = get_top_passwords_by_category(initial_category)
     initial_weakest_passwords = get_weakest_passwords_by_category(initial_category)

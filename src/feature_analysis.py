@@ -3,13 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
-from utils import password_features
+from utils import password_features, import_dataset
 
 # Download latest version
-path = kagglehub.dataset_download("utkarshx27/passwords")
-df = pd.read_csv(f"{path}/passwords.csv").dropna()
-# Drop
-df = df.drop(columns=['rank_alt', 'time_unit', 'value'])
+df = import_dataset()
 
 # print(df.info())
 """
@@ -26,22 +23,22 @@ df = df.drop(columns=['rank_alt', 'time_unit', 'value'])
 6   rank_alt           500 non-null    float64      DROPPED
 """
 
-# Şifre kategorilerini görüntüle
-print("\nŞifre Kategorileri:")
-print(df['category'].unique())
+# # Şifre kategorilerini görüntüle
+# print("\nŞifre Kategorileri:")
+# print(df['category'].unique())
 
 
-# Apply feature extraction
-password_features_df = df['password'].apply(password_features)
-# Concatenate new features with the original dataframe
-df = pd.concat([df, password_features_df], axis=1)
+# # Apply feature extraction
+# password_features_df = df['password'].apply(password_features)
+# # Concatenate new features with the original dataframe
+# df = pd.concat([df, password_features_df], axis=1)
 
-# Category Encoding: Convert category to integer
-label_encoder = LabelEncoder()
-df['category_encoded'] = label_encoder.fit_transform(df['category'])
+# # Category Encoding: Convert category to integer
+# label_encoder = LabelEncoder()
+# df['category_encoded'] = label_encoder.fit_transform(df['category'])
 
-# Drop original text columns
-df = df.drop(columns=['category'])
+# # Drop original text columns
+# df = df.drop(columns=['category'])
 
 #print(df.info())
 """
@@ -63,7 +60,7 @@ Data columns (total 12 columns):
 """
 
 # Correlation Analysis
-numeric_columns = df.drop('font_size', axis=1).select_dtypes(include=['float64', 'int64'])
+numeric_columns = df.select_dtypes(include=['float64', 'int64'])
 correlation_matrix = numeric_columns.corr()
 
 plt.figure(figsize=(10, 8))
