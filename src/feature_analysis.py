@@ -60,7 +60,8 @@ Data columns (total 12 columns):
 """
 
 # Correlation Analysis
-numeric_columns = df.select_dtypes(include=['float64', 'int64'])
+df = df.drop(columns=['font_size'])
+numeric_columns = df.select_dtypes(include=['float64', 'int32'])
 correlation_matrix = numeric_columns.corr()
 
 plt.figure(figsize=(10, 8))

@@ -54,8 +54,13 @@ print(f"Naive Bayes Accuracy: {nb_accuracy:.2f}")
 
 # Logistic Regression modeli eğitimi
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+
+# Store the feature names used during training
+feature_names = X.columns
+
+# Use the stored feature names during scaling
+X_train_scaled = scaler.fit_transform(X_train[feature_names])
+X_test_scaled = scaler.transform(X_test[feature_names])
 
 logistic_regression = LogisticRegression(C=1000, max_iter=1000, penalty='l2', solver='lbfgs', random_state=42)
 logistic_regression.fit(X_train_scaled, y_train)
@@ -63,3 +68,6 @@ lr_predictions = logistic_regression.predict(X_test_scaled)
 lr_accuracy = accuracy_score(y_test, lr_predictions)
 
 print(f"Logistic Regression Accuracy: {lr_accuracy:.2f}")
+
+# Update the logistic_regression model to include feature names
+logistic_regression.feature_names_in_ = feature_names

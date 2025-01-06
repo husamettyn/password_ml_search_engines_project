@@ -233,9 +233,12 @@ with gr.Blocks(theme='allenai/gradio-theme') as demo:
                 
                 model = models[model_name]
                 
-                # Convert Series to DataFrame and arrange columns
+                # Ensure the DataFrame for prediction has the correct feature names and order
+                feature_names = model.feature_names_in_ if hasattr(model, 'feature_names_in_') else model.feature_names_
                 features_df = pd.DataFrame([features])
-                features_df = features_df[model.feature_names_in_]  # Arrange columns in the order expected by the model
+                
+                # Ensure the DataFrame has the correct columns
+                features_df = features_df.reindex(columns=feature_names, fill_value=0)  # Fill missing columns with 0
                 
                 # Scaling for Logistic Regression
                 if model_name == "Logistic Regression":
